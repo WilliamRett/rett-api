@@ -35,7 +35,7 @@ API Laravel com autenticação **JWT**, documentação **Swagger (L5-Swagger)**,
 - [Troubleshooting](#troubleshooting)
 - [Segurança](#segurança)
 - [Licença](#licença)
-- [Postaman](#postman)
+- [Postman](#postman)
 
 ---
 
