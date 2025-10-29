@@ -190,8 +190,8 @@ JWT_SECRET=<<sua_chave_jwt>>
   (O `make init` já chama isso para você.)
 
 - **Acessar Swagger UI**
-  - **http://localhost:8000/api/documentation**
-  - JSON: **http://localhost:8000/api/documentation.json**
+  - **http://localhost:8000/api/docs**
+  - JSON: **http://localhost:8000/docs**
 
 - **Autorização (Bearer JWT)**
   1. No Swagger UI, clique em **Authorize**.
@@ -199,14 +199,14 @@ JWT_SECRET=<<sua_chave_jwt>>
   3. Clique em **Authorize** e **Close**.
 
 <p align="center">
-  <img src="docs/images/swagger-authorize.png" alt="Swagger Authorize" width="640">
+  <img src="app/Docs/images/swagger-authorize.png" alt="Swagger Authorize" width="640">
 </p>
 
 <p align="center">
-  <img src="docs/images/swagger-collaborators.png" alt="Swagger Collaborators" width="640">
+  <img src="app/Docs/images/swagger-collaborators.png" alt="Swagger Collaborators" width="640">
 </p>
 
-> Se as imagens não aparecerem, crie as pastas/arquivos em `docs/images/swagger-authorize.png` e `docs/images/swagger-collaborators.png` (ou ajuste os caminhos no README).
+> Se as imagens não aparecerem, crie as pastas/arquivos em `Docs/images/swagger-authorize.png` e `Docs/images/swagger-collaborators.png` (ou ajuste os caminhos no README).
 
 **Dica – CORS/Network Failure**  
 Se o Swagger mostrar `Network Failure`/`URL scheme must be "http" or "https"`, ajuste:
