@@ -213,8 +213,6 @@ JWT_SECRET=<<sua_chave_jwt>>
   <img src="app/Docs/images/swagger-collaborators.png" alt="Swagger Collaborators" width="640">
 </p>
 
-> Se as imagens não aparecerem, crie as pastas/arquivos em `Docs/images/swagger-authorize.png` e `Docs/images/swagger-collaborators.png` (ou ajuste os caminhos no README).
-
 **Dica – CORS/Network Failure**  
 Se o Swagger mostrar `Network Failure`/`URL scheme must be "http" or "https"`, ajuste:
 - `APP_URL` e `L5_SWAGGER_CONST_HOST` **com http/https** válidos (ex.: `http://localhost:8000`).  
