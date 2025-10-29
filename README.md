@@ -346,7 +346,7 @@ Ajuste `APP_URL` e `L5_SWAGGER_CONST_HOST` com **http/https** válidos para seu 
 
 ---
 
-## Postaman
+## Postman
 Dentro do projeto existe um arquivo criado com nome de rett-api.postman_collection para utilizar e somente fazer o importe no postman 
 - Script pra salvar token dentro dele ja criado
 
