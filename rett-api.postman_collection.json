@@ -1,0 +1,593 @@
+{
+	"info": {
+		"_postman_id": "ec21b317-fdcf-47d4-9258-fbad91069332",
+		"name": "Collaborators API",
+		"description": "Postman collection for the Collaborators API (JWT).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37921779"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "CHECK",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Health check JSON on root path."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "LOGIN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"let json = {};",
+									"try { json = pm.response.json(); } catch (e) {}",
+									"",
+									"if (json && json.access_token) {",
+									"  pm.collectionVariables.set(\"token\", json.access_token);",
+									"  if (json.token_type) pm.collectionVariables.set(\"token_type\", json.token_type);",
+									"  if (json.expires_in) pm.collectionVariables.set(\"token_expires_in\", json.expires_in);",
+									"",
+									"  pm.test(\"Token captured\", function () {",
+									"    pm.expect(json.access_token).to.be.a(\"string\");",
+									"  });",
+									"} else {",
+									"  pm.test(\"Token not present in response\", function () {",
+									"    pm.expect.fail(\"Missing access_token\");",
+									"  });",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "// {\n//   \"email\": \"email.rett@outlook.com.br\",\n//   \"password\": \"secret123\"\n// }\n\n{\n  \"email\": \"gestor@example.com\",\n  \"password\": \"secret1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticate and receive a JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "ME",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get the authenticated user's profile."
+					},
+					"response": []
+				},
+				{
+					"name": "LOGOUT",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Invalidate the current JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "REFRESH",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh the JWT token."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "CREATE",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Gestor\",\n  \"email\": \"gestor@example.com\",\n  \"password\": \"secret1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new user (manager)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Collaborators",
+			"item": [
+				{
+					"name": "LIST",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators?per_page=15&page=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "15"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								}
+							]
+						},
+						"description": "List collaborators of the authenticated manager (paginated)."
+					},
+					"response": []
+				},
+				{
+					"name": "FIND",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators/115",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators",
+								"115"
+							]
+						},
+						"description": "Show one collaborator by id (must belong to the authenticated manager)."
+					},
+					"response": []
+				},
+				{
+					"name": "CREATE",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"rett12345\",\n  \"email\": \"heito1231aaar.oliveira547@hotmail.com\",\n  \"cpf\": \"294.346.778-12\",\n  \"city\": \"Belém\",\n  \"state\": \"Pará\",\n  \"phone\": \"(91)99577-7936\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators"
+							]
+						},
+						"description": "Create a collaborator for the authenticated manager. Returns 201 and Location header."
+					},
+					"response": []
+				},
+				{
+					"name": "UPDATE PARCIAL",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"11967370405\",\n  \"city\": \"RETT\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators/115",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators",
+								"115"
+							]
+						},
+						"description": "Partially update a collaborator (PATCH)."
+					},
+					"response": []
+				},
+				{
+					"name": "UPDATE COMPLETO",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Rett\",\n  \"email\": \"email.rett1234@outlook.com.br\",\n  \"cpf\": \"894.323.270-51\",\n  \"city\": \"São 123 Paulo\",\n  \"state\": \"São 123 Paulo\",\n  \"phone\": \"119881231887777\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators/115",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators",
+								"115"
+							]
+						},
+						"description": "Full update (compatibility). Prefer PATCH."
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators/116",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators",
+								"116"
+							]
+						},
+						"description": "Delete a collaborator (204 No Content)."
+					},
+					"response": []
+				},
+				{
+					"name": "PDF UPLOAD",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "postman-cloud:///1f0b4fa3-7c4b-4f70-8f6e-962a2b3d9d09"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/collaborators/imports",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"collaborators",
+								"imports"
+							]
+						},
+						"description": "Upload a CSV with columns: name,email,cpf,city,state[,phone]. Returns 202 and enqueues processing."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "token_type",
+			"value": ""
+		},
+		{
+			"key": "token_expires_in",
+			"value": ""
+		},
+		{
+			"key": "nome",
+			"value": ""
+		},
+		{
+			"key": "email",
+			"value": ""
+		},
+		{
+			"key": "cpf_raw",
+			"value": ""
+		},
+		{
+			"key": "cpf",
+			"value": ""
+		},
+		{
+			"key": "cidade",
+			"value": ""
+		},
+		{
+			"key": "estado",
+			"value": ""
+		},
+		{
+			"key": "uf",
+			"value": ""
+		},
+		{
+			"key": "ddd",
+			"value": ""
+		},
+		{
+			"key": "telefone_raw",
+			"value": ""
+		},
+		{
+			"key": "telefone",
+			"value": ""
+		},
+		{
+			"key": "telefone_e164",
+			"value": ""
+		}
+	]
+}
