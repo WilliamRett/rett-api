@@ -56,8 +56,10 @@ API Laravel com autenticação **JWT**, documentação **Swagger (L5-Swagger)**,
 
 1) **Clonar o repositório**
 ```bash
+
 git clone <seu-repo>.git
 cd <seu-repo>
+
 ```
 
 2) **Instalar `make` (se necessário)**
@@ -106,17 +108,22 @@ make init
 
 4) **Executar app + worker**
 ```powershell
-make run
+make run 
 ```
 
-> Se não quiser usar Make no Windows:  
-> - Suba serviços: `docker compose up -d`  
-> - Crie `.env` (copie `.env.example`)  
-> - `composer install && php artisan key:generate`  
-> - `php artisan migrate --force && php artisan db:seed --force`  
-> - `php artisan l5-swagger:generate`  
-> - Rodar: `php artisan serve` e, em outro terminal, `php artisan queue:work`
 
+```
+
+ Se não quiser usar Make no Windows:  
+
+ Suba serviços: `docker compose up -d`  
+ Crie `.env` (copie `.env.example`)  
+ `composer install && php artisan key:generate`  
+ `php artisan migrate --force && php artisan db:seed --force`  
+ `php artisan l5-swagger:generate`  
+ Rodar: `php artisan serve` e, em outro terminal, `php artisan queue:work`
+
+```
 ---
 
 ## Configuração do `.env`
