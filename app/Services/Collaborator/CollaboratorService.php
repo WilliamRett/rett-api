@@ -80,7 +80,7 @@ class CollaboratorService implements CollaboratorServiceContract
     public function create(int $userId, array $payload): ServiceResponse
     {
         $payload['user_id'] = $userId;
-
+        $payload['state'] = $this->normalizeStateFullName($payload['state'] ?? null);
         DB::beginTransaction();
         try {
             $model = $this->collaborator->create($payload);
@@ -107,7 +107,7 @@ class CollaboratorService implements CollaboratorServiceContract
         if (!$this->collaborator->existsForUser($userId, $id)) {
             return ServiceResponse::error('Usuário não autorizado', 403);
         }
-
+        $payload['state'] = $this->normalizeStateFullName($payload['state'] ?? null);
         DB::beginTransaction();
         try {
             $model = $this->collaborator->update($id, $data);
