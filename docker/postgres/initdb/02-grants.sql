@@ -1,0 +1,17 @@
+\connect rett
+
+GRANT CONNECT ON DATABASE rett TO rett, app_readwrite, app_readonly;
+GRANT USAGE   ON SCHEMA public TO rett, app_readwrite, app_readonly;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_readwrite;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO app_readwrite;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_readonly;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES    TO app_readwrite;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT, UPDATE        ON SEQUENCES  TO app_readwrite;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO app_readonly;

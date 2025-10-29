@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rett-postgres
+    environment:
+      POSTGRES_DB: rett
+      POSTGRES_USER: rett
+      POSTGRES_PASSWORD: rett1234
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # usa as envs do container (note o $${...})
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -h 127.0.0.1 -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [stack]
+
+  redis:
+    image: redis:7-alpine
+    container_name: rett-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      # healthcheck correto para redis
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [stack]
+
+volumes:
+  dbdata:
+  redisdata:
+
+networks:
+  stack:
+    driver: bridge
