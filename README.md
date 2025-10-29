@@ -28,6 +28,7 @@ API Laravel com autenticação **JWT**, documentação **Swagger (L5-Swagger)**,
 - [Configuração do `.env`](#configuração-do-env)
 - [Executando a aplicação](#executando-a-aplicação)
 - [Swagger / OpenAPI](#swagger--openapi)
+- [Testing](#testing)
 - [Autenticação JWT (exemplos)](#autenticação-jwt-exemplos)
 - [Módulo de Colaboradores](#módulo-de-colaboradores)
 - [Importação CSV](#importação-csv)
@@ -220,6 +221,11 @@ Se o Swagger mostrar `Network Failure`/`URL scheme must be "http" or "https"`, a
 
 ---
 
+## Testing
+
+- **Teste padrao** 
+  - Comando: `php artisan test`
+  
 ## Autenticação JWT (exemplos)
 
 **Login**
