@@ -1,36 +1,26 @@
 FROM php:8.3-fpm-alpine
 
-# deps base
+# pacotes base
 RUN apk add --no-cache \
-    bash \
-    git \
-    curl \
-    unzip \
-    libzip-dev \
-    icu-dev \
-    oniguruma-dev \
-    libpq-dev \
-    tzdata
+    bash git curl unzip tzdata \
+    libzip-dev icu-dev oniguruma-dev libpq-dev $PHPIZE_DEPS
 
-# extensões do Laravel + Postgres
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    intl \
-    zip
+# extensões nativas
+RUN docker-php-ext-install pdo pdo_pgsql intl zip
 
-RUN apk add --no-cache $PHPIZE_DEPS \
-  && pecl install redis \
-  && docker-php-ext-enable redis \
-  && apk del --no-network $PHPIZE_DEPS
+# 👇 instala e habilita a extensão do Redis
+RUN pecl install redis \
+ && docker-php-ext-enable redis
 
-# composer (pega do container oficial)
+# composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# permissões mínimas
+# garante que o usuário do php-fpm tenha ownership
 RUN chown -R www-data:www-data /var/www/html
 
-# php-fpm padrão
-CMD ["php-fpm"]
+# (opcional) se quiser já preparar pastas de escrita
+RUN mkdir -p storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache \
+ && chown -R www-data:www-data storage bootstrap/cache \
+ && chmod -R ug+rwX storage bootstrap/cache

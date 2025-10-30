@@ -68,10 +68,10 @@ wait-redis:
 	@echo "🟢 Redis pronto."
 
 ensure-storage:
-	@mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs
-	@touch storage/logs/laravel.log
-	@chmod -R ug+rwX storage bootstrap/cache || true
-	@echo "🗂️  storage/ e bootstrap/cache ok."
+	@mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs || true
+	@chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
+	@-touch storage/logs/laravel.log 2>/dev/null || true
+	@echo "🗂️  storage/ e bootstrap/cache ok (host). Se não deu permissão, o container vai ajustar."
 
 composer-install:
 	@if [ -f composer.json ]; then \
