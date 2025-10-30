@@ -40,9 +40,10 @@ help:
 	@echo "  ex: make init PORT=8080 HOST=0.0.0.0"
 	@echo ""
 
+# ===== Fluxo completo =====
 init: up env ensure-storage composer-install key wait-db wait-redis migrate-install migrate seed swagger optimize
 	@if [ -f $(INIT_SENTINEL) ]; then \
-		echo "✅ Já inicializado anteriormente (($(INIT_SENTINEL)))."; \
+		echo "✅ Já inicializado anteriormente ($(INIT_SENTINEL))."; \
 	else \
 		touch $(INIT_SENTINEL); \
 		echo "✅ Inicialização concluída e marcada em $(INIT_SENTINEL)."; \
@@ -57,6 +58,7 @@ init: up env ensure-storage composer-install key wait-db wait-redis migrate-inst
 init-only: RUN_DEV=0
 init-only: init
 
+# ===== Docker =====
 up:
 	$(DC) -f $(COMPOSE_FILE) up -d
 
@@ -76,6 +78,16 @@ wait-redis:
 	@$(DC) exec -T redis sh -lc 'for i in $$(seq 1 60); do redis-cli ping | grep -q PONG && exit 0; sleep 1; done; exit 1'
 	@echo "🟢 Redis pronto."
 
+status:
+	$(DC) -f $(COMPOSE_FILE) ps
+
+psql:
+	$(DC) exec db sh -lc 'psql -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 -p 5432'
+
+redis-cli:
+	$(DC) exec redis sh -lc 'redis-cli'
+
+# ===== Laravel setup =====
 ensure-storage:
 	@mkdir -p storage/framework/{cache,data,sessions,testing,views} bootstrap/cache storage/logs
 	@touch storage/logs/laravel.log
@@ -141,117 +153,113 @@ reset-db: down
 	@$(DC) -f $(COMPOSE_FILE) up -d
 	@$(MAKE) wait-db wait-redis migrate-install migrate seed
 
-psql:
-	$(DC) exec db sh -lc 'psql -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 -p 5432'
-
-redis-cli:
-	$(DC) exec redis sh -lc 'redis-cli'
-
-status:
-	$(DC) -f $(COMPOSE_FILE) ps
-
-# ====== DEV ======
+# ===== DEV (serve + queue) =====
 dev:
 	@mkdir -p scripts
-	@if command -v uname >/dev/null 2>&1; then \
-		OS=$$(uname | tr '[:upper:]' '[:lower:]'); \
-	else \
-		OS="unknown"; \
-	fi; \
-	if echo $$OS | grep -qi "mingw\\|msys\\|cygwin"; then \
-		$(MAKE) dev-ps1 HOST=$(HOST) PORT=$(PORT); \
-	elif echo $$OS | grep -qi "darwin\\|linux"; then \
-		$(MAKE) dev-sh HOST=$(HOST) PORT=$(PORT); \
-	else \
-		echo "SO não identificado; rodando em background..."; \
-		nohup $(ARTISAN) serve --host=$(HOST) --port=$(PORT) > storage/logs/server.log 2>&1 & \
-		&& echo "serve em background (logs: storage/logs/server.log)"; \
-		nohup $(ARTISAN) queue:work --tries=3 --backoff=3 > storage/logs/queue.log 2>&1 & \
-		&& echo "queue:work em background (logs: storage/logs/queue.log)"; \
-	fi
+	@OS=$$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo unknown); \
+	case "$$OS" in \
+		*mingw*|*msys*|*cygwin*) \
+			$(MAKE) dev-ps1 HOST=$(HOST) PORT=$(PORT) ; \
+			;; \
+		*darwin*|*linux*) \
+			$(MAKE) dev-sh HOST=$(HOST) PORT=$(PORT) ; \
+			;; \
+		*) \
+			echo "SO não identificado; vou rodar em background..."; \
+			nohup $(ARTISAN) serve --host=$(HOST) --port=$(PORT) > storage/logs/server.log 2>&1 & \
+			echo "serve em background (logs: storage/logs/server.log)"; \
+			nohup $(ARTISAN) queue:work --tries=3 --backoff=3 > storage/logs/queue.log 2>&1 & \
+			echo "queue:work em background (logs: storage/logs/queue.log)"; \
+			;; \
+	esac
 
+# Linux / macOS
 dev-sh:
-	@chmod +x scripts/dev.sh 2>/dev/null || true
-	@printf "%s\n" '#!/usr/bin/env bash' > scripts/dev.sh
-	@printf "%s\n" 'set -e' >> scripts/dev.sh
-	@printf "%s\n" 'HOST="${HOST:-127.0.0.1}"' >> scripts/dev.sh
-	@printf "%s\n" 'PORT="${PORT:-8000}"' >> scripts/dev.sh
-	@cat >> scripts/dev.sh << "EOF"
-if command -v tmux >/dev/null 2>&1; then
-  SESSION="laravel-dev"
-  tmux has-session -t "$SESSION" 2>/dev/null && tmux kill-session -t "$SESSION" || true
-  tmux new-session -d -s "$SESSION" -n "app"
-  tmux send-keys -t "$SESSION:app" "php artisan serve --host=$HOST --port=$PORT" C-m
-  tmux new-window -t "$SESSION" -n "queue"
-  tmux send-keys -t "$SESSION:queue" "php artisan queue:work --tries=3 --backoff=3" C-m
-  echo "🖥️  tmux session '$SESSION' criada (janelas: app, queue)."
-  echo "   Dica: tmux attach -t $SESSION"
-  exit 0
-fi
-
-# tenta alguns terminais comuns
-for TERM_APP in gnome-terminal konsole kitty alacritty xfce4-terminal mate-terminal tilix wezterm x-terminal-emulator; do
-  if command -v "$TERM_APP" >/dev/null 2>&1; then
-    case "$TERM_APP" in
-      gnome-terminal|xfce4-terminal|mate-terminal|tilix|x-terminal-emulator)
-        "$TERM_APP" -- bash -lc "php artisan serve --host=$HOST --port=$PORT; exec bash" &
-        "$TERM_APP" -- bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &
-        ;;
-      konsole)
-        "$TERM_APP" -e bash -lc "php artisan serve --host=$HOST --port=$PORT; exec bash" &
-        "$TERM_APP" -e bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &
-        ;;
-      kitty|alacritty|wezterm)
-        "$TERM_APP" -e bash -lc "php artisan serve --host=$HOST --port=$PORT; exec bash" &
-        "$TERM_APP" -e bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &
-        ;;
-    esac
-    echo "🖥️  Abrindo duas janelas em $TERM_APP (serve e queue)."
-    exit 0
-  fi
-done
-
-# fallback: background + logs
-nohup php artisan serve --host="$HOST" --port="$PORT" > storage/logs/server.log 2>&1 &
-nohup php artisan queue:work --tries=3 --backoff=3 > storage/logs/queue.log 2>&1 &
-echo "🔧 Sem terminal detectado — rodando em background."
-echo "   - server.log: storage/logs/server.log"
-echo "   - queue.log : storage/logs/queue.log"
-EOF
-	@scripts/dev.sh
+	@mkdir -p scripts
+	@echo "🔧 Gerando scripts/dev.sh..."
+	@printf '%s\n' '#!/usr/bin/env bash' > scripts/dev.sh
+	@printf '%s\n' 'set -e' >> scripts/dev.sh
+	@printf '%s\n' '' >> scripts/dev.sh
+	@printf '%s\n' 'HOST="${HOST:-$(HOST)}"' >> scripts/dev.sh
+	@printf '%s\n' 'PORT="${PORT:-$(PORT)}"' >> scripts/dev.sh
+	@printf '%s\n' '' >> scripts/dev.sh
+	@printf '%s\n' '# se tiver tmux, é a melhor experiência' >> scripts/dev.sh
+	@printf '%s\n' 'if command -v tmux >/dev/null 2>&1; then' >> scripts/dev.sh
+	@printf '%s\n' '  SESSION="laravel-dev"' >> scripts/dev.sh
+	@printf '%s\n' '  tmux has-session -t "$$SESSION" 2>/dev/null && tmux kill-session -t "$$SESSION" || true' >> scripts/dev.sh
+	@printf '%s\n' '  tmux new-session -d -s "$$SESSION" -n "app"' >> scripts/dev.sh
+	@printf '%s\n' '  tmux send-keys -t "$$SESSION:app" "php artisan serve --host=$$HOST --port=$$PORT" C-m' >> scripts/dev.sh
+	@printf '%s\n' '  tmux new-window -t "$$SESSION" -n "queue"' >> scripts/dev.sh
+	@printf '%s\n' '  tmux send-keys -t "$$SESSION:queue" "php artisan queue:work --tries=3 --backoff=3" C-m' >> scripts/dev.sh
+	@printf '%s\n' '  echo "🖥️  tmux session '\''$$SESSION'\'' criada (janelas: app, queue)."' >> scripts/dev.sh
+	@printf '%s\n' '  echo "   Dica: tmux attach -t $$SESSION"' >> scripts/dev.sh
+	@printf '%s\n' '  exit 0' >> scripts/dev.sh
+	@printf '%s\n' 'fi' >> scripts/dev.sh
+	@printf '%s\n' '' >> scripts/dev.sh
+	@printf '%s\n' '# tenta alguns terminais comuns (Linux desktop)' >> scripts/dev.sh
+	@printf '%s\n' 'for TERM_APP in gnome-terminal konsole kitty alacritty xfce4-terminal mate-terminal tilix wezterm x-terminal-emulator; do' >> scripts/dev.sh
+	@printf '%s\n' '  if command -v "$$TERM_APP" >/dev/null 2>&1; then' >> scripts/dev.sh
+	@printf '%s\n' '    case "$$TERM_APP" in' >> scripts/dev.sh
+	@printf '%s\n' '      gnome-terminal|xfce4-terminal|mate-terminal|tilix|x-terminal-emulator)' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -- bash -lc "php artisan serve --host=$$HOST --port=$$PORT; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -- bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        ;;' >> scripts/dev.sh
+	@printf '%s\n' '      konsole)' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -e bash -lc "php artisan serve --host=$$HOST --port=$$PORT; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -e bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        ;;' >> scripts/dev.sh
+	@printf '%s\n' '      kitty|alacritty|wezterm)' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -e bash -lc "php artisan serve --host=$$HOST --port=$$PORT; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        "$$TERM_APP" -e bash -lc "php artisan queue:work --tries=3 --backoff=3; exec bash" &' >> scripts/dev.sh
+	@printf '%s\n' '        ;;' >> scripts/dev.sh
+	@printf '%s\n' '    esac' >> scripts/dev.sh
+	@printf '%s\n' '    echo "🖥️  Abrindo duas janelas em $$TERM_APP (serve e queue)."' >> scripts/dev.sh
+	@printf '%s\n' '    exit 0' >> scripts/dev.sh
+	@printf '%s\n' '  fi' >> scripts/dev.sh
+	@printf '%s\n' 'done' >> scripts/dev.sh
+	@printf '%s\n' '' >> scripts/dev.sh
+	@printf '%s\n' '# fallback: roda em background e grava logs' >> scripts/dev.sh
+	@printf '%s\n' 'nohup php artisan serve --host="$$HOST" --port="$$PORT" > storage/logs/server.log 2>&1 &' >> scripts/dev.sh
+	@printf '%s\n' 'nohup php artisan queue:work --tries=3 --backoff=3 > storage/logs/queue.log 2>&1 &' >> scripts/dev.sh
+	@printf '%s\n' 'echo "🔧 Sem terminal detectado — rodando em background."' >> scripts/dev.sh
+	@printf '%s\n' 'echo "   - server.log: storage/logs/server.log"' >> scripts/dev.sh
+	@printf '%s\n' 'echo "   - queue.log : storage/logs/queue.log"' >> scripts/dev.sh
+	@chmod +x scripts/dev.sh
+	@HOST=$(HOST) PORT=$(PORT) scripts/dev.sh
 
 dev-ps1:
-	@printf "%s\n" 'param([string]$HostName="'"$(HOST)"'", [string]$Port="'"$(PORT)"'")' > scripts/dev.ps1
-	@cat >> scripts/dev.ps1 << "EOF"
-$serveCmd = "php artisan serve --host=$HostName --port=$Port"
-$queueCmd = "php artisan queue:work --tries=3 --backoff=3"
-
-function Start-In-WindowsTerminal {
-  if (Get-Command wt -ErrorAction SilentlyContinue) {
-    wt -w 0 nt PowerShell -NoExit "$serveCmd" `
-       ; nt PowerShell -NoExit "$queueCmd"
-    Write-Host "🖥️  Abrindo duas tabs no Windows Terminal (serve/queue)."
-    exit 0
-  }
-}
-
-function Start-In-PowerShellWindows {
-  Start-Process powershell -ArgumentList "-NoExit", $serveCmd | Out-Null
-  Start-Process powershell -ArgumentList "-NoExit", $queueCmd | Out-Null
-  Write-Host "🖥️  Abrindo duas janelas do PowerShell (serve/queue)."
-  exit 0
-}
-
-try { Start-In-WindowsTerminal } catch {}
-try { Start-In-PowerShellWindows } catch {}
-
-# fallback: background + logs
-$serverLog = "storage/logs/server.log"
-$queueLog  = "storage/logs/queue.log"
-Start-Process powershell -ArgumentList "-NoProfile", "-WindowStyle Hidden", "-Command `"$serveCmd *> $serverLog`""
-Start-Process powershell -ArgumentList "-NoProfile", "-WindowStyle Hidden", "-Command `"$queueCmd  *> $queueLog`""
-Write-Host "🔧 Sem terminal detectado — rodando em background."
-Write-Host "   - server.log: $serverLog"
-Write-Host "   - queue.log : $queueLog"
-EOF
+	@mkdir -p scripts
+	@echo "🔧 Gerando scripts/dev.ps1..."
+	# primeira linha: assinatura do script
+	@printf "param([string]\$$HostName=\"%s\", [string]\$$Port=\"%s\")\n" "$(HOST)" "$(PORT)" > scripts/dev.ps1
+	# comandos
+	@printf "\$$serveCmd = \"php artisan serve --host=\$$HostName --port=\$$Port\"\n" >> scripts/dev.ps1
+	@printf "\$$queueCmd = \"php artisan queue:work --tries=3 --backoff=3\"\n" >> scripts/dev.ps1
+	@printf "\n" >> scripts/dev.ps1
+	@printf "function Start-In-WindowsTerminal {\n" >> scripts/dev.ps1
+	@printf "  if (Get-Command wt -ErrorAction SilentlyContinue) {\n" >> scripts/dev.ps1
+	@printf "    wt -w 0 nt PowerShell -NoExit \"\$$serveCmd\" ; nt PowerShell -NoExit \"\$$queueCmd\"\n" >> scripts/dev.ps1
+	@printf "    Write-Host \"🖥️  Abrindo duas tabs no Windows Terminal (serve/queue).\"\n" >> scripts/dev.ps1
+	@printf "    exit 0\n" >> scripts/dev.ps1
+	@printf "  }\n" >> scripts/dev.ps1
+	@printf "}\n" >> scripts/dev.ps1
+	@printf "\n" >> scripts/dev.ps1
+	@printf "function Start-In-PowerShellWindows {\n" >> scripts/dev.ps1
+	@printf "  Start-Process powershell -ArgumentList \"-NoExit\", \$$serveCmd | Out-Null\n" >> scripts/dev.ps1
+	@printf "  Start-Process powershell -ArgumentList \"-NoExit\", \$$queueCmd | Out-Null\n" >> scripts/dev.ps1
+	@printf "  Write-Host \"🖥️  Abrindo duas janelas do PowerShell (serve/queue).\"\n" >> scripts/dev.ps1
+	@printf "  exit 0\n" >> scripts/dev.ps1
+	@printf "}\n" >> scripts/dev.ps1
+	@printf "\n" >> scripts/dev.ps1
+	@printf "try { Start-In-WindowsTerminal } catch {}\n" >> scripts/dev.ps1
+	@printf "try { Start-In-PowerShellWindows } catch {}\n" >> scripts/dev.ps1
+	@printf "\n" >> scripts/dev.ps1
+	@printf "\$$serverLog = \"storage/logs/server.log\"\n" >> scripts/dev.ps1
+	@printf "\$$queueLog  = \"storage/logs/queue.log\"\n" >> scripts/dev.ps1
+	@printf "Start-Process powershell -ArgumentList \"-NoProfile\", \"-WindowStyle\", \"Hidden\", \"-Command `\"\$$serveCmd *> \$$serverLog`\"\"\n" >> scripts/dev.ps1
+	@printf "Start-Process powershell -ArgumentList \"-NoProfile\", \"-WindowStyle\", \"Hidden\", \"-Command `\"\$$queueCmd  *> \$$queueLog`\"\"\n" >> scripts/dev.ps1
+	@printf "Write-Host \"🔧 Sem terminal detectado — rodando em background.\"\n" >> scripts/dev.ps1
+	@printf "Write-Host \"   - server.log: \$$serverLog\"\n" >> scripts/dev.ps1
+	@printf "Write-Host \"   - queue.log : \$$queueLog\"\n" >> scripts/dev.ps1
 	@powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 -HostName "$(HOST)" -Port "$(PORT)"
+
